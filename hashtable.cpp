@@ -67,13 +67,8 @@ int main() {
     insert(ht, "sasha6", "valera6");
     insert(ht, "sasha7", "valera7");
     insert(ht, "sergey", "victor");
-    insert(ht, "sergeysalfjsa dlfalfjasdlfklaflkdflafd jsdlfksa lfjs ldf",
-           "victor");
+    insert(ht, "asldkfhskdhl", "poxyu");
 
-    print_table(ht);
-    extend_table(ht);
-    print_table(ht);
-    shrink_table(ht);
     print_table(ht);
 
     remove(ht, "sasha0");
@@ -83,9 +78,16 @@ int main() {
     remove(ht, "sasha4");
     remove(ht, "sasha5");
     remove(ht, "sasha6");
+
+    print_table(ht);
+
+    std::cout << get(ht, "sergey") << std::endl;
+    std::cout << get(ht, "asldkfhskdhl") << std::endl;
+    std::cout << std::endl;
+
     remove(ht, "sasha7");
     remove(ht, "sergey");
-    remove(ht, "sergeysalfjsa dlfalfjasdlfklaflkdflafd jsdlfksa lfjs ldf");
+    remove(ht, "asldkfhskdhl");
 
     print_table(ht);
 
@@ -144,7 +146,7 @@ Value get(Ht *&ht, Key key) {
 
     is_nonexistent(ht, key_hash);
 
-    while (ht->items[key_hash]->key != key &&
+    while (ht->items[key_hash]->key != key or
            ht->items[key_hash]->is_tombstone) {
         key_hash++;
         if (key_hash == ht->size)
@@ -165,11 +167,13 @@ void remove(Ht *&ht, Key key) {
     if (ht->items[key_hash] == nullptr)
         return;
 
-    while (ht->items[key_hash]->key != key &&
+    while (ht->items[key_hash]->key != key or
            ht->items[key_hash]->is_tombstone) {
         key_hash++;
         if (key_hash == ht->size)
             key_hash -= ht->size;
+        if (ht->items[key_hash] == nullptr)
+            return;
     }
 
     ht->items[key_hash]->is_tombstone = true;
@@ -207,10 +211,12 @@ void print_table(Ht *&ht) {
 
     for (std::size_t item = 0; item < ht->size; item++)
         if (ht->items[item] != nullptr)
-            std::cout << "Key: `" << ht->items[item]->key << "', value: `"
-                      << ht->items[item]->value << "', calculated position: "
-                      << ht->hash(ht->items[item]->key) % ht->size
-                      << ", real position: " << item << std::endl;
+            if (!ht->items[item]->is_tombstone)
+                std::cout << "Key: `" << ht->items[item]->key << "', value: `"
+                          << ht->items[item]->value
+                          << "', calculated position: "
+                          << ht->hash(ht->items[item]->key) % ht->size
+                          << ", real position: " << item << std::endl;
 
     std::cout << std::endl;
 }
