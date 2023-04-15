@@ -41,7 +41,7 @@ void destroy(Ht *&ht);
 // void clear(Ht *&ht);
 // void set_hash_function(Ht *&ht, std::size_t (*hash)(std::string input));
 
-void is_nonexistent(Ht *&ht, std::size_t key_hash);
+void throw_nonexistent(Ht *&ht, std::size_t key_hash, Key key);
 Value get(Ht *&ht, Key key);
 void insert(Ht *&ht, Key key, Value value);
 void remove(Ht *&ht, Key key);
@@ -91,6 +91,10 @@ int main() {
 
     print_table(ht);
 
+#ifdef BAD_ACCESS_TEST
+    std::cout << get(ht, "very bad (very nonexistent) key") << std::endl;
+#endif
+
     destroy(ht);
 
     return 0;
@@ -135,16 +139,16 @@ void insert(Ht *&ht, Key key, Value value) {
     ht->item_count++;
 }
 
-void is_nonexistent(Ht *&ht, std::size_t key_hash) {
+void throw_nonexistent(Ht *&ht, std::size_t key_hash, Key key) {
     if (ht->items[key_hash] == nullptr)
-        throw std::out_of_range(
-            "There is no element associated with the provided key.");
+        throw std::out_of_range("There is no element associated with key `" +
+                                std::string(key) + "'.");
 }
 
 Value get(Ht *&ht, Key key) {
     std::size_t key_hash = ht->hash(key) % ht->size;
 
-    is_nonexistent(ht, key_hash);
+    throw_nonexistent(ht, key_hash, key);
 
     while (ht->items[key_hash]->key != key or
            ht->items[key_hash]->is_tombstone) {
@@ -152,7 +156,7 @@ Value get(Ht *&ht, Key key) {
         if (key_hash == ht->size)
             key_hash -= ht->size;
 
-        is_nonexistent(ht, key_hash);
+        throw_nonexistent(ht, key_hash, key);
     }
 
     return ht->items[key_hash]->value;
