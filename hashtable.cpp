@@ -47,7 +47,7 @@ void insert(Ht *&ht, Key key, Value value);
 void remove(Ht *&ht, Key key);
 
 // void inserts(Ht *&ht, std::string *keys, Item **&items);
-// void removes(Ht *&ht, std::string *keys);
+// void removes(Ht *&ht, std::string *keys)
 
 void resize_table(Ht *&ht, const double resize_factor);
 void extend_table(Ht *&ht);
@@ -90,11 +90,7 @@ int main() {
     remove(ht, "asldkfhskdhl");
 
     print_table(ht);
-
-#ifdef BAD_ACCESS_TEST
-    std::cout << get(ht, "very bad (very nonexistent) key") << std::endl;
-#endif
-
+    
     destroy(ht);
 
     return 0;
@@ -150,8 +146,8 @@ Value get(Ht *&ht, Key key) {
 
     throw_nonexistent(ht, key_hash, key);
 
-    while (ht->items[key_hash]->key != key or
-           ht->items[key_hash]->is_tombstone) {
+    while (ht->items[key_hash]->key != key or ht->items[key_hash]->is_tombstone) 
+    {
         key_hash++;
         if (key_hash == ht->size)
             key_hash -= ht->size;
