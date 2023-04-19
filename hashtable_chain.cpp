@@ -231,20 +231,7 @@ void remove(Ht *&ht, Key key) {
 
     std::size_t key_hash = ht->hash(key) % ht->size;
 
-    if (ht->items[key_hash] == nullptr)
-        return;
-
-    while (ht->items[key_hash]->key != key or
-           ht->items[key_hash]->is_tombstone) {
-        key_hash++;
-        if (key_hash == ht->size)
-            key_hash -= ht->size;
-        if (ht->items[key_hash] == nullptr)
-            return;
-    }
-
-    ht->items[key_hash]->is_tombstone = true;
-    ht->item_count--;
+    remove_from_list(ht->items[key_hash], key);
 }
 
 void resize_table(Ht *&ht, const double resize_factor) {
