@@ -7,8 +7,9 @@
 typedef std::string Key;
 typedef std::string Value;
 
-constexpr double load_factor             = 0.5;
-constexpr std::size_t default_table_size = 4;
+constexpr double load_factor                 = 0.5;
+constexpr std::size_t default_table_size     = 4;
+constexpr std::size_t default_max_table_size = 8192;
 
 std::size_t hash_function(Key input) { return std::hash<Key>{}(input); }
 
@@ -30,6 +31,8 @@ void push_front(Item *&head_ref, Key key, Value value);
 
 Item *find_in_list(Item *head_ref, Key key);
 
+Item *pop_front(Item *&head_ref);
+
 struct KeyValue
 {
     Key key;
@@ -44,13 +47,17 @@ static const Item tombstone = Item("", "");
 struct Ht
 {
     std::size_t (*hash)(Key input) = nullptr;
-
-    std::size_t size    = 0;
-    unsigned item_count = 0;
-    Item **items        = nullptr;
+    std::size_t size               = 0;
+    std::size_t min_size           = 0;
+    std::size_t max_size           = 0;
+    unsigned item_count            = 0;
+    Item **items                   = nullptr;
 
     Ht(){};
 };
+
+Ht *create(std::size_t size, std::size_t min_size, std::size_t max_size,
+           std::size_t (*hash)(Key input));
 
 Ht *create(std::size_t size, std::size_t (*hash)(Key input));
 
@@ -123,16 +130,30 @@ Item *find_in_list(Item *head_ref, Key key) {
     return find_in_list(head_ref->next, key);
 }
 
-Ht *create(std::size_t size, std::size_t (*hash)(Key input)) {
-    Ht *ht    = new Ht;
-    ht->size  = size;
-    ht->hash  = hash;
-    ht->items = new Item *[size];
+Item *pop_front(Item *&head_ref) {
+    Item *current = head_ref;
+    head_ref      = head_ref->next;
+
+    return current;
+}
+
+Ht *create(std::size_t size, std::size_t min_size, std::size_t max_size,
+           std::size_t (*hash)(Key input)) {
+    Ht *ht       = new Ht;
+    ht->size     = size;
+    ht->max_size = size;
+    ht->min_size = min_size;
+    ht->hash     = hash;
+    ht->items    = new Item *[size];
 
     for (std::size_t item = 0; item < size; item++)
         ht->items[item] = nullptr;
 
     return ht;
+}
+
+Ht *create(std::size_t size, std::size_t (*hash)(Key input)) {
+    return create(size, size, default_max_table_size, hash);
 }
 
 Ht *create() { return create(default_table_size, default_hash_function); }
@@ -233,23 +254,31 @@ void remove(Ht *&ht, Key key) {
 }
 
 void resize_table(Ht *&ht, const double resize_factor) {
-    Ht *new_ht = create(ht->size * resize_factor, ht->hash);
+    Ht *new_ht =
+        create(ht->size * resize_factor, ht->min_size, ht->max_size, ht->hash);
 
     for (std::size_t item_i = 0; item_i < ht->size; item_i++) {
-        Item *item = ht->items[item_i];
+        Item *item = pop_front(ht->items[item_i]);
 
-        if (item != nullptr)
-            if (!item->is_tombstone)
-                insert(new_ht, item->key, item->value);
+        while (item != nullptr) {
+            insert(new_ht, item->key, item->value);
+            item = pop_front(item);
+        }
     }
 
     destroy(ht);
     ht = new_ht;
 }
 
-void shrink_table(Ht *&ht) { resize_table(ht, 0.5); }
+void shrink_table(Ht *&ht) {
+    if (ht->size * 0.5 >= ht->min_size)
+        resize_table(ht, 0.5);
+}
 
-void extend_table(Ht *&ht) { resize_table(ht, 2); }
+void extend_table(Ht *&ht) {
+    if (ht->size * 2 <= ht->max_size)
+        resize_table(ht, 2);
+}
 
 void print_table(Ht *&ht) {
     //    bool is_empty = true; //detected as not used
