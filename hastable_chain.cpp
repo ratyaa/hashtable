@@ -55,7 +55,9 @@ void inserts(Ht *&ht, std::string *keys, Item **&items);
 // void removes(Ht *&ht, std::string *keys)
 
 void resize_table(Ht *&ht, const double resize_factor);
+
 void extend_table(Ht *&ht);
+
 void shrink_table(Ht *&ht);
 
 void print_table(Ht *&ht);
@@ -116,6 +118,7 @@ Ht *create(std::size_t size, std::size_t (*hash)(Key input)) {
 
     return ht;
 }
+
 Ht *create() { return create(default_table_size, default_hash_function); }
 
 void destroy(Ht *&ht) {
@@ -247,6 +250,7 @@ void resize_table(Ht *&ht, const double resize_factor) {
 }
 
 void shrink_table(Ht *&ht) { resize_table(ht, 0.5); }
+
 void extend_table(Ht *&ht) { resize_table(ht, 2); }
 
 void print_table(Ht *&ht) {
