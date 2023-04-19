@@ -168,24 +168,14 @@ void destroy(Ht *&ht) {
 }
 
 void insert(Ht *&ht, Key key, Value value) {
-    Item *item = new Item(key, value);
+    //Item *item = new Item(key, value);
 
     if (ht->item_count >= ht->size * load_factor)
         extend_table(ht);
 
     std::size_t key_hash = ht->hash(item->key) % ht->size;
-
-    while (ht->items[key_hash] != nullptr) {
-        if (ht->items[key_hash]->is_tombstone)
-            break;
-
-        key_hash++;
-        if (key_hash == ht->size)
-            key_hash -= ht->size;
-    }
-
-    ht->items[key_hash] = item;
-    ht->item_count++;
+    push_front(ht->items[key_hash], key_hash, value);
+    
 }
 
 void inserts(Ht *&ht, KeyValue *dict, size_t size) {
