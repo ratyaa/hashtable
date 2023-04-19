@@ -174,7 +174,7 @@ void insert(Ht *&ht, Key key, Value value) {
         extend_table(ht);
 
     std::size_t key_hash = ht->hash(item->key) % ht->size;
-    push_front(ht->items[key_hash], key_hash, value);
+    push_front(ht->items[key_hash], key, value);
     
 }
 
