@@ -70,6 +70,8 @@ void insert(Ht *&ht, Key key, Value value);
 
 void remove(Ht *&ht, Key key);
 
+void remove_from_list(Item*& head_ref, Key key);
+
 void inserts(Ht *&ht, KeyValue *dict, size_t size);
 // void removes(Ht *&ht, std::string *keys);
 
@@ -110,6 +112,29 @@ int main() {
     destroy(ht);
 
     return 0;
+}
+
+void remove_from_list(Item*& head_ref, Key key){
+    Node *a = head_ref;
+    Node *p = nullptr;
+    while (a != nullptr) { 
+        if(a->key == key){
+          if(p == nullptr){
+            Node *tmp = a;
+            head_ref = a->next;
+            delete tmp;
+            return;
+          }
+          Node *tmp = a;
+          p->next = a->next;
+          delete tmp;
+          return;
+        }
+        p = a;
+        a = a->next;
+        
+    }
+    return;
 }
 
 void push_front(Item *&head_ref, Key key, Value value) {
