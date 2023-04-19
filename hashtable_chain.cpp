@@ -174,8 +174,9 @@ void insert(Ht *&ht, Key key, Value value) {
         extend_table(ht);
 
     std::size_t key_hash = ht->hash(item->key) % ht->size;
-    push_front(ht->items[key_hash], key, value);
-    
+    if (find(ht, key) != nullptr){
+        push_front(ht->items[key_hash], key, value);
+    }
 }
 
 void inserts(Ht *&ht, KeyValue *dict, size_t size) {
