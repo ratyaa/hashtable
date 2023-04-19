@@ -115,17 +115,17 @@ int main() {
 }
 
 void remove_from_list(Item*& head_ref, Key key){
-    Node *a = head_ref;
-    Node *p = nullptr;
+    Item *a = head_ref;
+    Item *p = nullptr;
     while (a != nullptr) { 
         if(a->key == key){
           if(p == nullptr){
-            Node *tmp = a;
+            Item *tmp = a;
             head_ref = a->next;
             delete tmp;
             return;
           }
-          Node *tmp = a;
+          Item *tmp = a;
           p->next = a->next;
           delete tmp;
           return;
