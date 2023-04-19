@@ -77,6 +77,8 @@ void insert(Ht *&ht, Key key, Value value);
 
 void remove(Ht *&ht, Key key);
 
+void remove_from_list(Item*& head_ref, Key key);
+
 void inserts(Ht *&ht, KeyValue *dict, size_t size);
 // void removes(Ht *&ht, std::string *keys);
 
@@ -117,6 +119,29 @@ int main() {
     destroy(ht);
 
     return 0;
+}
+
+void remove_from_list(Item*& head_ref, Key key){
+    Item *a = head_ref;
+    Item *p = nullptr;
+    while (a != nullptr) { 
+        if(a->key == key){
+          if(p == nullptr){
+            Item *tmp = a;
+            head_ref = a->next;
+            delete tmp;
+            return;
+          }
+          Item *tmp = a;
+          p->next = a->next;
+          delete tmp;
+          return;
+        }
+        p = a;
+        a = a->next;
+        
+    }
+    return;
 }
 
 void push_front(Item *&head_ref, Key key, Value value) {
@@ -164,24 +189,14 @@ void destroy(Ht *&ht) {
 }
 
 void insert(Ht *&ht, Key key, Value value) {
-    Item *item = new Item(key, value);
+    //Item *item = new Item(key, value);
 
     if (ht->item_count >= ht->size * load_factor)
         extend_table(ht);
 
     std::size_t key_hash = ht->hash(item->key) % ht->size;
-
-    while (ht->items[key_hash] != nullptr) {
-        if (ht->items[key_hash]->is_tombstone)
-            break;
-
-        key_hash++;
-        if (key_hash == ht->size)
-            key_hash -= ht->size;
-    }
-
-    ht->items[key_hash] = item;
-    ht->item_count++;
+    push_front(ht->items[key_hash], key_hash, value);
+    
 }
 
 void inserts(Ht *&ht, KeyValue *dict, size_t size) {
@@ -237,20 +252,7 @@ void remove(Ht *&ht, Key key) {
 
     std::size_t key_hash = ht->hash(key) % ht->size;
 
-    if (ht->items[key_hash] == nullptr)
-        return;
-
-    while (ht->items[key_hash]->key != key or
-           ht->items[key_hash]->is_tombstone) {
-        key_hash++;
-        if (key_hash == ht->size)
-            key_hash -= ht->size;
-        if (ht->items[key_hash] == nullptr)
-            return;
-    }
-
-    ht->items[key_hash]->is_tombstone = true;
-    ht->item_count--;
+    remove_from_list(ht->items[key_hash], key);
 }
 
 void resize_table(Ht *&ht, const double resize_factor) {
