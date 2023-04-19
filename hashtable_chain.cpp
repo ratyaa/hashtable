@@ -7,8 +7,9 @@
 typedef std::string Key;
 typedef std::string Value;
 
-constexpr double load_factor             = 0.5;
-constexpr std::size_t default_table_size = 4;
+constexpr double load_factor                 = 0.5;
+constexpr std::size_t default_table_size     = 4;
+constexpr std::size_t default_max_table_size = 8192;
 
 std::size_t hash_function(Key input) { return std::hash<Key>{}(input); }
 
@@ -30,6 +31,8 @@ void push_front(Item *&head_ref, Key key, Value value);
 
 Item *find_in_list(Item *head_ref, Key key);
 
+Item *pop_front(Item *&head_ref);
+
 struct KeyValue
 {
     Key key;
@@ -38,19 +41,22 @@ struct KeyValue
     KeyValue(){};
 };
 
-static const Item tombstone = Item("", "");
 // renamed because it's not a field
 
 struct Ht
 {
     std::size_t (*hash)(Key input) = nullptr;
-
-    std::size_t size    = 0;
-    unsigned item_count = 0;
-    Item **items        = nullptr;
+    std::size_t size               = 0;
+    std::size_t min_size           = 0;
+    std::size_t max_size           = 0;
+    unsigned item_count            = 0;
+    Item **items                   = nullptr;
 
     Ht(){};
 };
+
+Ht *create(std::size_t size, std::size_t min_size, std::size_t max_size,
+           std::size_t (*hash)(Key input));
 
 Ht *create(std::size_t size, std::size_t (*hash)(Key input));
 
@@ -70,7 +76,7 @@ void insert(Ht *&ht, Key key, Value value);
 
 void remove(Ht *&ht, Key key);
 
-void remove_from_list(Item*& head_ref, Key key);
+void remove_from_list(Item *&head_ref, Key key);
 
 void inserts(Ht *&ht, KeyValue *dict, size_t size);
 // void removes(Ht *&ht, std::string *keys);
@@ -114,21 +120,21 @@ int main() {
     return 0;
 }
 
-void remove_from_list(Item*& head_ref, Key key){
+void remove_from_list(Item *&head_ref, Key key) {
     Item *a = head_ref;
     Item *p = nullptr;
-    while (a != nullptr) { 
-        if(a->key == key){
-          if(p == nullptr){
+    while (a != nullptr) {
+        if (a->key == key) {
+            if (p == nullptr) {
+                Item *tmp = a;
+                head_ref  = a->next;
+                delete tmp;
+                return;
+            }
             Item *tmp = a;
-            head_ref = a->next;
+            p->next   = a->next;
             delete tmp;
             return;
-          }
-          Item *tmp = a;
-          p->next = a->next;
-          delete tmp;
-          return;
         }
         p = a;
         a = a->next;
@@ -148,16 +154,30 @@ Item *find_in_list(Item *head_ref, Key key) {
     return find_in_list(head_ref->next, key);
 }
 
-Ht *create(std::size_t size, std::size_t (*hash)(Key input)) {
-    Ht *ht    = new Ht;
-    ht->size  = size;
-    ht->hash  = hash;
-    ht->items = new Item *[size];
+Item *pop_front(Item *&head_ref) {
+    Item *current = head_ref;
+    head_ref      = head_ref->next;
+
+    return current;
+}
+
+Ht *create(std::size_t size, std::size_t min_size, std::size_t max_size,
+           std::size_t (*hash)(Key input)) {
+    Ht *ht       = new Ht;
+    ht->size     = size;
+    ht->max_size = size;
+    ht->min_size = min_size;
+    ht->hash     = hash;
+    ht->items    = new Item *[size];
 
     for (std::size_t item = 0; item < size; item++)
         ht->items[item] = nullptr;
 
     return ht;
+}
+
+Ht *create(std::size_t size, std::size_t (*hash)(Key input)) {
+    return create(size, size, default_max_table_size, hash);
 }
 
 Ht *create() { return create(default_table_size, default_hash_function); }
@@ -168,14 +188,13 @@ void destroy(Ht *&ht) {
 }
 
 void insert(Ht *&ht, Key key, Value value) {
-    //Item *item = new Item(key, value);
+    // Item *item = new Item(key, value);
 
     if (ht->item_count >= ht->size * load_factor)
         extend_table(ht);
 
-    std::size_t key_hash = ht->hash(item->key) % ht->size;
-    push_front(ht->items[key_hash], key_hash, value);
-    
+    std::size_t key_hash = ht->hash(key) % ht->size;
+    push_front(ht->items[key_hash], key, value);
 }
 
 void inserts(Ht *&ht, KeyValue *dict, size_t size) {
@@ -193,11 +212,10 @@ void throw_nonexistent(Ht *&ht, std::size_t key_hash, Key key) {
 Value get(Ht *&ht, Key key) {
     Item *item           = find(ht, key);
     std::size_t key_hash = ht->hash(key) % ht->size;
-    if (item != nullptr)
-        return item->value;
-    else {
+    if (item == nullptr)
         throw_nonexistent(ht, key_hash, key);
-    }
+
+    return item->value;
 }
 
 Item *find(Ht *&ht, Key key) {
@@ -222,40 +240,35 @@ void remove(Ht *&ht, Key key) {
 
     std::size_t key_hash = ht->hash(key) % ht->size;
 
-    if (ht->items[key_hash] == nullptr)
-        return;
-
-    while (ht->items[key_hash]->key != key or
-           ht->items[key_hash]->is_tombstone) {
-        key_hash++;
-        if (key_hash == ht->size)
-            key_hash -= ht->size;
-        if (ht->items[key_hash] == nullptr)
-            return;
-    }
-
-    ht->items[key_hash]->is_tombstone = true;
-    ht->item_count--;
+    remove_from_list(ht->items[key_hash], key);
 }
 
 void resize_table(Ht *&ht, const double resize_factor) {
-    Ht *new_ht = create(ht->size * resize_factor, ht->hash);
+    Ht *new_ht =
+        create(ht->size * resize_factor, ht->min_size, ht->max_size, ht->hash);
 
     for (std::size_t item_i = 0; item_i < ht->size; item_i++) {
-        Item *item = ht->items[item_i];
+        Item *item = pop_front(ht->items[item_i]);
 
-        if (item != nullptr)
-            if (!item->is_tombstone)
-                insert(new_ht, item->key, item->value);
+        while (item != nullptr) {
+            insert(new_ht, item->key, item->value);
+            item = pop_front(item);
+        }
     }
 
     destroy(ht);
     ht = new_ht;
 }
 
-void shrink_table(Ht *&ht) { resize_table(ht, 0.5); }
+void shrink_table(Ht *&ht) {
+    if (ht->size * 0.5 >= ht->min_size)
+        resize_table(ht, 0.5);
+}
 
-void extend_table(Ht *&ht) { resize_table(ht, 2); }
+void extend_table(Ht *&ht) {
+    if (ht->size * 2 <= ht->max_size)
+        resize_table(ht, 2);
+}
 
 void print_table(Ht *&ht) {
     //    bool is_empty = true; //detected as not used
@@ -268,14 +281,16 @@ void print_table(Ht *&ht) {
         return;
     }
 
-    for (std::size_t item = 0; item < ht->size; item++)
-        if (ht->items[item] != nullptr)
-            if (!ht->items[item]->is_tombstone)
-                std::cout << "Key: `" << ht->items[item]->key << "', value: `"
-                          << ht->items[item]->value
-                          << "', calculated position: "
-                          << ht->hash(ht->items[item]->key) % ht->size
-                          << ", real position: " << item << std::endl;
+    for (std::size_t item_i = 0; item_i < ht->size; item_i++) {
+        Item *item = ht->items[item_i];
+        while (item != nullptr) {
+            std::cout << "Key: `" << item->key << "', value: `" << item->value
+                      << "', calculated position: "
+                      << ht->hash(item->key) % ht->size
+                      << ", real position: " << item << std::endl;
+            item = item->next;
+        }
+    }
 
     std::cout << std::endl;
 }
