@@ -23,6 +23,13 @@ struct Item
     Item(Key key, Value value) : key(key), value(value), is_tombstone(false){};
 };
 
+struct KeyValue {
+    Key key;
+    Value value;
+    KeyValue(Key key, Value value) : key(key), value(value){};
+    KeyValue(){};
+};
+
 static const Item tombstone = Item("", "");
 //renamed because it's not a field
 
@@ -55,7 +62,7 @@ void insert(Ht *&ht, Key key, Value value);
 
 void remove(Ht *&ht, Key key);
 
-void inserts(Ht *&ht, std::string *keys, std::string *values, int number);
+void inserts(Ht *&ht, KeyValue *dict, size_t size);
 // void removes(Ht *&ht, std::string *keys);
 
 void resize_table(Ht *&ht, const double resize_factor);
@@ -71,9 +78,13 @@ void print_table(Ht *&ht);
 int main() {
     Ht *ht = create(4, &hash_function);
 
-    std::string keys[]   = {"key1", "key2", "key3"};
-    std::string values[] = {"value1", "value2", "value3"};
-    inserts(ht, keys, values, 3);
+    size_t dict_size = 2;
+    KeyValue *dict = new KeyValue[dict_size];
+    dict[0] = KeyValue("key0", "value0");
+    dict[1] = KeyValue("key1", "value1");
+
+    inserts(ht, dict, dict_size);
+    std::cout << get(ht, "key2") << std::endl;
     print_table(ht);
 
     //remove(ht, "key1");
@@ -82,8 +93,7 @@ int main() {
     clear(ht);
     print_table(ht);
 
-    std::cout << get(ht, "key1") << std::endl;
-    std::cout << get(ht, "key2") << std::endl;
+
     //
 
 #ifdef BAD_ACCESS_TEST
@@ -123,7 +133,7 @@ void insert(Ht *&ht, Key key, Value value) {
     std::size_t key_hash = ht->hash(item->key) % ht->size;
 
     while (ht->items[key_hash] != nullptr) {
-        if (ht->items[key_hash]->is_tombstone == true)
+        if (ht->items[key_hash]->is_tombstone)
             break;
 
         key_hash++;
@@ -135,9 +145,9 @@ void insert(Ht *&ht, Key key, Value value) {
     ht->item_count++;
 }
 
-void inserts(Ht *&ht, std::string *keys, std::string *values, int number) {
-    for (int i = 0; i < number; ++i) {
-        insert(ht, keys[i], values[i]);
+void inserts(Ht *&ht, KeyValue *dict, size_t size) {
+    for (int i = 0; i < size; ++i) {
+        insert(ht, dict[i].key, dict[i].value);
     }
 }
 
@@ -224,7 +234,7 @@ void shrink_table(Ht *&ht) { resize_table(ht, 0.5); }
 void extend_table(Ht *&ht) { resize_table(ht, 2); }
 
 void print_table(Ht *&ht) {
-    bool is_empty = true;
+//    bool is_empty = true; //detected as not used
 
     std::cout << "Table size: " << ht->size
               << ", item count: " << ht->item_count << std::endl;
