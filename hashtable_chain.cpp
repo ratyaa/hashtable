@@ -197,22 +197,13 @@ Value get(Ht *&ht, Key key) {
         return item->value;
     else {
         throw_nonexistent(ht, key_hash, key);
-        return tombstone.value;
     }
 }
 
 Item *find(Ht *&ht, Key key) {
     std::size_t key_hash = ht->hash(key) % ht->size;
-
-    //        throw_nonexistent(ht, key_hash, key);
-
     while (ht->items[key_hash] != nullptr) {
-        if (ht->items[key_hash]->key == key)
-            return ht->items[key_hash];
-
-        key_hash++;
-        if (key_hash == ht->size)
-            key_hash -= ht->size;
+        find_in_list(ht->items[key_hash], key);
     }
     return nullptr;
 }
