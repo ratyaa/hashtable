@@ -42,7 +42,7 @@ Ht *create(std::size_t size, std::size_t (*hash)(Key input));
 Ht *create();
 
 void destroy(Ht *&ht);
-// void clear(Ht *&ht);
+void clear(Ht *&ht);
 // void set_hash_function(Ht *&ht, std::size_t (*hash)(std::string input));
 
 void throw_nonexistent(Ht *&ht, std::size_t key_hash, Key key);
@@ -64,6 +64,8 @@ void extend_table(Ht *&ht);
 
 void shrink_table(Ht *&ht);
 
+void clear(Ht *&ht);
+
 void print_table(Ht *&ht);
 
 int main() {
@@ -74,10 +76,10 @@ int main() {
     inserts(ht, keys, values, 3);
     print_table(ht);
 
-    remove(ht, "key1");
-    remove(ht, "key2");
-    remove(ht, "key3");
-
+    //remove(ht, "key1");
+    //remove(ht, "key2");
+    //remove(ht, "key3");
+    clear(ht);
     print_table(ht);
 
     std::cout << get(ht, "key1") << std::endl;
@@ -170,6 +172,14 @@ Item *find(Ht *&ht, Key key) {
             key_hash -= ht->size;
     }
     return nullptr;
+}
+
+void clear(Ht *&ht){
+    delete[] ht->items;
+    ht->items = new Item *[ht->size];
+    for (std::size_t item = 0; item < ht->size; item++)
+        ht->items[item] = nullptr;
+    return;
 }
 
 void remove(Ht *&ht, Key key) {

@@ -123,6 +123,8 @@ void destroy(Ht *&ht) {
     delete ht;
 }
 
+
+
 void insert(Ht *&ht, Key key, Value value) {
     Item *item = new Item(key, value);
 
