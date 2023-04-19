@@ -18,8 +18,8 @@ struct Item
 {
     Key key;
     Value value;
-    bool is_tombstone;
-    Item(Key key, Value value) : key(key), value(value), is_tombstone(false){};
+    Item* next = nullptr;
+    Item(Key key, Value value) : key(key), value(value), next(nullptr){};
 };
 
 static const Item is_tombstone = Item("", "");
@@ -29,7 +29,7 @@ struct Ht
     std::size_t (*hash)(Key input) = nullptr;
     std::size_t size               = 0;
     unsigned item_count            = 0;
-    Item **items                   = nullptr;
+    Item ***items                    = nullptr;
 
     Ht(){};
 };
@@ -97,13 +97,17 @@ int main() {
 }
 
 Ht *create(std::size_t size, std::size_t (*hash)(Key input)) {
-    Ht *ht    = new Ht;
-    ht->size  = size;
-    ht->hash  = hash;
-    ht->items = new Item *[size];
+    Ht *ht       = new Ht;
+    ht->size     = size;
+    ht->hash     = hash;
+    ht->items    = new Item **[size];
 
-    for (std::size_t item = 0; item < size; item++)
-        ht->items[item] = nullptr;
+    for (std::size_t item = 0; item < size; item++) {
+        ht->items[item] = new Item *[size];
+        for (std::size_t subitem = 0; subitem < size; subitem++) {
+            ht->items[item][subitem] = nullptr;
+        }
+    }
 
     return ht;
 }
@@ -114,7 +118,8 @@ void destroy(Ht *&ht) {
     delete ht;
 }
 
-void insert(Ht *&ht, Key key, Value value) {
+void insert(Ht *&ht, Key key, Value value) 
+{
     Item *item = new Item(key, value);
 
     if (ht->item_count >= ht->size * load_factor)
@@ -122,40 +127,46 @@ void insert(Ht *&ht, Key key, Value value) {
 
     std::size_t key_hash = ht->hash(item->key) % ht->size;
 
-    while (ht->items[key_hash] != nullptr) {
-        if (ht->items[key_hash]->is_tombstone == true)
-            break;
-
-        key_hash++;
-        if (key_hash == ht->size)
-            key_hash -= ht->size;
+    if(ht->items[key_hash][0]->next == nullptr)
+    {
+        ht->items[key_hash][0] = item;
+        ht->item_count++;
     }
-
-    ht->items[key_hash] = item;
-    ht->item_count++;
+    else
+    {
+        for (int i = 0; ht->items[key_hash][i]->next != nullptr; )
+        {   
+            i++;
+            if(ht->items[key_hash][i] == nullptr)
+            {
+                ht->items[key_hash][i] = item;
+                ht->items[key_hash][i-1]->next = ht->items[key_hash][i];
+                ht->item_count++;
+                return;
+            }
+        }
+    }
 }
 
-void throw_nonexistent(Ht *&ht, std::size_t key_hash, Key key) {
-    if (ht->items[key_hash] == nullptr)
-        throw std::out_of_range("There is no element associated with key `" +
-                                std::string(key) + "'.");
+void throw_nonexistent(Ht *&ht, std::size_t key_hash, Key key) 
+{
+    if (ht->items[key_hash][0] == nullptr)
+        throw std::out_of_range("There is no element associated with key `" +std::string(key) + "'.");
 }
 
 Value get(Ht *&ht, Key key) {
     std::size_t key_hash = ht->hash(key) % ht->size;
 
+    int temp = 0;
     throw_nonexistent(ht, key_hash, key);
 
-    while (ht->items[key_hash]->key != key or ht->items[key_hash]->is_tombstone) 
+    while (ht->items[key_hash][temp]->key != key) 
     {
-        key_hash++;
-        if (key_hash == ht->size)
-            key_hash -= ht->size;
-
+        temp++;
         throw_nonexistent(ht, key_hash, key);
     }
 
-    return ht->items[key_hash]->value;
+    return ht->items[key_hash][temp]->value;
 }
 
 void remove(Ht *&ht, Key key) {
@@ -163,32 +174,37 @@ void remove(Ht *&ht, Key key) {
         shrink_table(ht);
 
     std::size_t key_hash = ht->hash(key) % ht->size;
+    int temp = 0;
 
-    if (ht->items[key_hash] == nullptr)
+    if (ht->items[key_hash][0] == nullptr)
         return;
 
-    while (ht->items[key_hash]->key != key or
-           ht->items[key_hash]->is_tombstone) {
-        key_hash++;
-        if (key_hash == ht->size)
-            key_hash -= ht->size;
-        if (ht->items[key_hash] == nullptr)
+    while (ht->items[key_hash][temp]->key != key) 
+    {
+        temp++;
+        if (ht->items[key_hash][temp] == nullptr)
             return;
     }
-
-    ht->items[key_hash]->is_tombstone = true;
+    if(temp > 0)
+    {
+        ht->items[key_hash][temp-1]->next = nullptr;
+    }
+    ht->items[key_hash][temp] = nullptr;
+    ht->items[key_hash][temp]->key = "";
+    ht->items[key_hash][temp]->value = "";
     ht->item_count--;
 }
 
 void resize_table(Ht *&ht, const double resize_factor) {
     Ht *new_ht = create(ht->size * resize_factor, ht->hash);
 
-    for (std::size_t item_i = 0; item_i < ht->size; item_i++) {
-        Item *item = ht->items[item_i];
+    for (std::size_t item_i = 0; item_i < ht->size; item_i++) 
+    {
+       // Item *item = ht->items[item_i];
 
-        if (item != nullptr)
-            if (!item->is_tombstone)
-                insert(new_ht, item->key, item->value);
+       // if (item != nullptr)
+            //if (!item->is_tombstone)
+                //insert(new_ht, item->key, item->value);
     }
 
     destroy(ht);
@@ -198,25 +214,27 @@ void resize_table(Ht *&ht, const double resize_factor) {
 void shrink_table(Ht *&ht) { resize_table(ht, 0.5); }
 void extend_table(Ht *&ht) { resize_table(ht, 2); }
 
-void print_table(Ht *&ht) {
+void print_table(Ht *&ht) 
+{
     bool is_empty = true;
 
     std::cout << "Table size: " << ht->size
               << ", item count: " << ht->item_count << std::endl;
 
-    if (ht->item_count == 0) {
+    if (ht->item_count == 0) 
+    {
         std::cout << "Empty!" << std::endl << std::endl;
         return;
     }
 
-    for (std::size_t item = 0; item < ht->size; item++)
-        if (ht->items[item] != nullptr)
-            if (!ht->items[item]->is_tombstone)
-                std::cout << "Key: `" << ht->items[item]->key << "', value: `"
-                          << ht->items[item]->value
-                          << "', calculated position: "
-                          << ht->hash(ht->items[item]->key) % ht->size
-                          << ", real position: " << item << std::endl;
+    //for (std::size_t item = 0; item < ht->size; item++)
+       // if (ht->items[item][0] != nullptr)
+         //   if (!ht->items[item][0].next == nullptr)
+           //     std::cout << "Key: `" << ht->items[item]->key << "', value: `"
+          //                << ht->items[item]->value
+           //               << "', calculated position: "
+           //               << ht->hash(ht->items[item]->key) % ht->size
+           //               << ", real position: " << item << std::endl;
 
     std::cout << std::endl;
 }
