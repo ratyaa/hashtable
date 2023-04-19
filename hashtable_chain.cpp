@@ -26,6 +26,10 @@ struct Item
     ~Item() { delete this->next; }
 };
 
+void push_front(Item *&head_ref, Key key, Value value);
+
+Item *find_in_list(Item *head_ref, Key key);
+
 struct KeyValue
 {
     Key key;
@@ -106,6 +110,17 @@ int main() {
     destroy(ht);
 
     return 0;
+}
+
+void push_front(Item *&head_ref, Key key, Value value) {
+    head_ref = new Item(key, value, head_ref);
+}
+
+Item *find_in_list(Item *head_ref, Key key) {
+    if ((head_ref == nullptr) or (head_ref->key == key))
+        return head_ref;
+
+    return find_in_list(head_ref->next, key);
 }
 
 Ht *create(std::size_t size, std::size_t (*hash)(Key input)) {
