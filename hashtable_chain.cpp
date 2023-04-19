@@ -41,7 +41,6 @@ struct KeyValue
     KeyValue(){};
 };
 
-static const Item tombstone = Item("", "");
 // renamed because it's not a field
 
 struct Ht
@@ -77,7 +76,7 @@ void insert(Ht *&ht, Key key, Value value);
 
 void remove(Ht *&ht, Key key);
 
-void remove_from_list(Item*& head_ref, Key key);
+void remove_from_list(Item *&head_ref, Key key);
 
 void inserts(Ht *&ht, KeyValue *dict, size_t size);
 // void removes(Ht *&ht, std::string *keys);
@@ -121,25 +120,24 @@ int main() {
     return 0;
 }
 
-void remove_from_list(Item*& head_ref, Key key){
+void remove_from_list(Item *&head_ref, Key key) {
     Item *a = head_ref;
     Item *p = nullptr;
-    while (a != nullptr) { 
-        if(a->key == key){
-          if(p == nullptr){
+    while (a != nullptr) {
+        if (a->key == key) {
+            if (p == nullptr) {
+                Item *tmp = a;
+                head_ref  = a->next;
+                delete tmp;
+                return;
+            }
             Item *tmp = a;
-            head_ref = a->next;
+            p->next   = a->next;
             delete tmp;
             return;
-          }
-          Item *tmp = a;
-          p->next = a->next;
-          delete tmp;
-          return;
         }
         p = a;
         a = a->next;
-        
     }
     return;
 }
@@ -189,14 +187,13 @@ void destroy(Ht *&ht) {
 }
 
 void insert(Ht *&ht, Key key, Value value) {
-    //Item *item = new Item(key, value);
+    // Item *item = new Item(key, value);
 
     if (ht->item_count >= ht->size * load_factor)
         extend_table(ht);
 
-    std::size_t key_hash = ht->hash(item->key) % ht->size;
-    push_front(ht->items[key_hash], key_hash, value);
-    
+    std::size_t key_hash = ht->hash(key) % ht->size;
+    push_front(ht->items[key_hash], key, value);
 }
 
 void inserts(Ht *&ht, KeyValue *dict, size_t size) {
@@ -214,12 +211,10 @@ void throw_nonexistent(Ht *&ht, std::size_t key_hash, Key key) {
 Value get(Ht *&ht, Key key) {
     Item *item           = find(ht, key);
     std::size_t key_hash = ht->hash(key) % ht->size;
-    if (item != nullptr)
-        return item->value;
-    else {
+    if (item == nullptr)
         throw_nonexistent(ht, key_hash, key);
-        return tombstone.value;
-    }
+
+    return item->value;
 }
 
 Item *find(Ht *&ht, Key key) {
@@ -293,14 +288,16 @@ void print_table(Ht *&ht) {
         return;
     }
 
-    for (std::size_t item = 0; item < ht->size; item++)
-        if (ht->items[item] != nullptr)
-            if (!ht->items[item]->is_tombstone)
-                std::cout << "Key: `" << ht->items[item]->key << "', value: `"
-                          << ht->items[item]->value
-                          << "', calculated position: "
-                          << ht->hash(ht->items[item]->key) % ht->size
-                          << ", real position: " << item << std::endl;
+    for (std::size_t item_i = 0; item_i < ht->size; item_i++) {
+        Item *item = ht->items[item_i];
+        while (item != nullptr) {
+            std::cout << "Key: `" << item->key << "', value: `" << item->value
+                      << "', calculated position: "
+                      << ht->hash(item->key) % ht->size
+                      << ", real position: " << item << std::endl;
+            item = item->next;
+        }
+    }
 
     std::cout << std::endl;
 }
