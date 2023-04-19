@@ -18,12 +18,16 @@ struct Item
 {
     Key key;
     Value value;
-    bool is_tombstone;
+    Item *next;
 
-    Item(Key key, Value value) : key(key), value(value), is_tombstone(false){};
+    Item(Key key, Value value, Item *&next)
+        : key(key), value(value), next(next){};
+
+    ~Item() { delete this->next; }
 };
 
-struct KeyValue {
+struct KeyValue
+{
     Key key;
     Value value;
     KeyValue(Key key, Value value) : key(key), value(value){};
@@ -31,7 +35,7 @@ struct KeyValue {
 };
 
 static const Item tombstone = Item("", "");
-//renamed because it's not a field
+// renamed because it's not a field
 
 struct Ht
 {
@@ -79,20 +83,19 @@ int main() {
     Ht *ht = create(4, &hash_function);
 
     size_t dict_size = 2;
-    KeyValue *dict = new KeyValue[dict_size];
-    dict[0] = KeyValue("key0", "value0");
-    dict[1] = KeyValue("key1", "value1");
+    KeyValue *dict   = new KeyValue[dict_size];
+    dict[0]          = KeyValue("key0", "value0");
+    dict[1]          = KeyValue("key1", "value1");
 
     inserts(ht, dict, dict_size);
     std::cout << get(ht, "key2") << std::endl;
     print_table(ht);
 
-    //remove(ht, "key1");
-    //remove(ht, "key2");
-    //remove(ht, "key3");
+    // remove(ht, "key1");
+    // remove(ht, "key2");
+    // remove(ht, "key3");
     clear(ht);
     print_table(ht);
-
 
     //
 
@@ -184,7 +187,7 @@ Item *find(Ht *&ht, Key key) {
     return nullptr;
 }
 
-void clear(Ht *&ht){
+void clear(Ht *&ht) {
     delete[] ht->items;
     ht->items = new Item *[ht->size];
     for (std::size_t item = 0; item < ht->size; item++)
@@ -234,7 +237,7 @@ void shrink_table(Ht *&ht) { resize_table(ht, 0.5); }
 void extend_table(Ht *&ht) { resize_table(ht, 2); }
 
 void print_table(Ht *&ht) {
-//    bool is_empty = true; //detected as not used
+    //    bool is_empty = true; //detected as not used
 
     std::cout << "Table size: " << ht->size
               << ", item count: " << ht->item_count << std::endl;
