@@ -216,12 +216,10 @@ void throw_nonexistent(Ht *&ht, std::size_t key_hash, Key key) {
 Value get(Ht *&ht, Key key) {
     Item *item           = find(ht, key);
     std::size_t key_hash = ht->hash(key) % ht->size;
-    if (item != nullptr)
-        return item->value;
-    else {
+    if (item == nullptr)
         throw_nonexistent(ht, key_hash, key);
-        return tombstone.value;
-    }
+
+    return item->value;
 }
 
 Item *find(Ht *&ht, Key key) {
