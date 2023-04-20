@@ -88,17 +88,17 @@ int main() {
 
     size_t dict_size = 11;
     KeyValue *dict   = new KeyValue[dict_size];
-    dict[0]          = KeyValue("key0", "value0");
-    dict[1]          = KeyValue("key1", "value1");
-    dict[2]          = KeyValue("key2", "value2");
-    dict[3]          = KeyValue("key3", "value3");
-    dict[4]          = KeyValue("key4", "value4");
-    dict[5]          = KeyValue("key5", "value5");
-    dict[6]          = KeyValue("key6", "value6");
-    dict[7]          = KeyValue("key7", "value7");
-    dict[8]          = KeyValue("key8", "value8");
-    dict[9]          = KeyValue("key9", "value9");
-    dict[10]         = KeyValue("key10", "value10");
+    dict[0]          = KeyValue("valera0", "sasha0");
+    dict[1]          = KeyValue("valera1", "sasha1");
+    dict[2]          = KeyValue("valera2", "sasha2");
+    dict[3]          = KeyValue("valera3", "sasha3");
+    dict[4]          = KeyValue("valera4", "sasha4");
+    dict[5]          = KeyValue("valera5", "sasha5");
+    dict[6]          = KeyValue("valera6", "sasha6");
+    dict[7]          = KeyValue("valera7", "sasha7");
+    dict[8]          = KeyValue("valera8", "sasha8");
+    dict[9]          = KeyValue("valera9", "sasha9");
+    dict[10]         = KeyValue("valera10", "sasha10");
 
     print_table(ht);
 
@@ -106,28 +106,28 @@ int main() {
 
     print_table(ht);
 
-    insert(ht, "key0", "value11231");
+    insert(ht, "valera0", "value11231");
 
     print_table(ht);
 
-    std::cout << get(ht, "key2") << std::endl;
-    std::cout << get(ht, "key8") << std::endl;
+    std::cout << get(ht, "valera2") << std::endl;
+    std::cout << get(ht, "valera8") << std::endl;
 
     removes(ht, dict, dict_size);
 
     print_table(ht);
 
-    // std::cout << get(ht, "key2") << std::endl;
+    // std::cout << get(ht, "valera2") << std::endl;
 
-    // remove(ht, "key2");
-    // remove(ht, "key3");
+    // remove(ht, "valera2");
+    // remove(ht, "valera3");
     clear(ht);
     print_table(ht);
 
     //
 
 #ifdef BAD_ACCESS_TEST
-    std::cout << get(ht, "very bad (very nonexistent) key") << std::endl;
+    std::cout << get(ht, "very bad key") << std::endl;
 #endif
 
     destroy(ht);
