@@ -63,8 +63,10 @@ Ht *create(std::size_t size, std::size_t (*hash)(Key input));
 Ht *create();
 
 void destroy(Ht *&ht);
+
 void clear(Ht *&ht);
-// void set_hash_function(Ht *&ht, std::size_t (*hash)(std::string input));
+
+void set_hash_function(Ht *&ht, std::size_t (*hash)(std::string input));
 
 void throw_nonexistent(Ht *&ht, std::size_t key_hash, Key key);
 
@@ -79,7 +81,8 @@ void remove(Ht *&ht, Key key);
 void remove_from_list(Item *&head_ref, Key key);
 
 void inserts(Ht *&ht, KeyValue *dict, size_t size);
-// void removes(Ht *&ht, std::string *keys);
+
+void removes(Ht *&ht, KeyValue *dict, size_t size);
 
 void resize_table(Ht *&ht, const double resize_factor);
 
@@ -94,16 +97,36 @@ void print_table(Ht *&ht);
 int main() {
     Ht *ht = create(4, &hash_function);
 
-    size_t dict_size = 2;
+    size_t dict_size = 11;
     KeyValue *dict   = new KeyValue[dict_size];
     dict[0]          = KeyValue("key0", "value0");
     dict[1]          = KeyValue("key1", "value1");
+    dict[2]          = KeyValue("key2", "value2");
+    dict[3]          = KeyValue("key3", "value3");
+    dict[4]          = KeyValue("key4", "value4");
+    dict[5]          = KeyValue("key5", "value5");
+    dict[6]          = KeyValue("key6", "value6");
+    dict[7]          = KeyValue("key7", "value7");
+    dict[8]          = KeyValue("key8", "value8");
+    dict[9]          = KeyValue("key9", "value9");
+    dict[10]         = KeyValue("key10", "value10");
 
-    inserts(ht, dict, dict_size);
-    std::cout << get(ht, "key2") << std::endl;
     print_table(ht);
 
-    // remove(ht, "key1");
+    inserts(ht, dict, dict_size);
+    insert(ht, "key0", "value11231");
+
+    print_table(ht);
+
+    std::cout << get(ht, "key2") << std::endl;
+    std::cout << get(ht, "key8") << std::endl;
+
+    removes(ht, dict, dict_size);
+
+    print_table(ht);
+
+    // std::cout << get(ht, "key2") << std::endl;
+
     // remove(ht, "key2");
     // remove(ht, "key3");
     clear(ht);
@@ -138,7 +161,6 @@ void remove_from_list(Item *&head_ref, Key key) {
         }
         p = a;
         a = a->next;
-        
     }
     return;
 }
@@ -156,7 +178,9 @@ Item *find_in_list(Item *head_ref, Key key) {
 
 Item *pop_front(Item *&head_ref) {
     Item *current = head_ref;
-    head_ref      = head_ref->next;
+
+    if (head_ref != nullptr)
+        head_ref = head_ref->next;
 
     return current;
 }
@@ -165,7 +189,7 @@ Ht *create(std::size_t size, std::size_t min_size, std::size_t max_size,
            std::size_t (*hash)(Key input)) {
     Ht *ht       = new Ht;
     ht->size     = size;
-    ht->max_size = size;
+    ht->max_size = max_size;
     ht->min_size = min_size;
     ht->hash     = hash;
     ht->items    = new Item *[size];
@@ -174,6 +198,10 @@ Ht *create(std::size_t size, std::size_t min_size, std::size_t max_size,
         ht->items[item] = nullptr;
 
     return ht;
+}
+
+void set_hash_function(Ht *&ht, std::size_t (*hash)(std::string input)) {
+    ht->hash = hash;
 }
 
 Ht *create(std::size_t size, std::size_t (*hash)(Key input)) {
@@ -194,7 +222,11 @@ void insert(Ht *&ht, Key key, Value value) {
         extend_table(ht);
 
     std::size_t key_hash = ht->hash(key) % ht->size;
-    push_front(ht->items[key_hash], key, value);
+
+    if (find_in_list(ht->items[key_hash], key) == nullptr) {
+        push_front(ht->items[key_hash], key, value);
+        ht->item_count++;
+    }
 }
 
 void inserts(Ht *&ht, KeyValue *dict, size_t size) {
@@ -203,10 +235,15 @@ void inserts(Ht *&ht, KeyValue *dict, size_t size) {
     }
 }
 
+void removes(Ht *&ht, KeyValue *dict, size_t size) {
+    for (int i = 0; i < size; ++i) {
+        remove(ht, dict[i].key);
+    }
+}
+
 void throw_nonexistent(Ht *&ht, std::size_t key_hash, Key key) {
-    if (ht->items[key_hash] == nullptr)
-        throw std::out_of_range("There is no element associated with key `" +
-                                std::string(key) + "'.");
+    throw std::out_of_range("There is no element associated with key `" +
+                            std::string(key) + "'.");
 }
 
 Value get(Ht *&ht, Key key) {
@@ -220,18 +257,14 @@ Value get(Ht *&ht, Key key) {
 
 Item *find(Ht *&ht, Key key) {
     std::size_t key_hash = ht->hash(key) % ht->size;
-    while (ht->items[key_hash] != nullptr) {
-        find_in_list(ht->items[key_hash], key);
-    }
-    return nullptr;
+
+    return find_in_list(ht->items[key_hash], key);
 }
 
 void clear(Ht *&ht) {
-    delete[] ht->items;
-    ht->items = new Item *[ht->size];
-    for (std::size_t item = 0; item < ht->size; item++)
-        ht->items[item] = nullptr;
-    return;
+    Ht *new_ht = create(ht->min_size, ht->min_size, ht->max_size, ht->hash);
+    destroy(ht);
+    ht = new_ht;
 }
 
 void remove(Ht *&ht, Key key) {
@@ -241,6 +274,7 @@ void remove(Ht *&ht, Key key) {
     std::size_t key_hash = ht->hash(key) % ht->size;
 
     remove_from_list(ht->items[key_hash], key);
+    ht->item_count--;
 }
 
 void resize_table(Ht *&ht, const double resize_factor) {
@@ -252,7 +286,7 @@ void resize_table(Ht *&ht, const double resize_factor) {
 
         while (item != nullptr) {
             insert(new_ht, item->key, item->value);
-            item = pop_front(item);
+            item = pop_front(ht->items[item_i]);
         }
     }
 
