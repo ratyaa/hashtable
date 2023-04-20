@@ -197,7 +197,7 @@ void insert(Ht *&ht, Key key, Value value) {
             found_position = key_hash;
     }
 
-    ht->items[key_hash] = item;
+    ht->items[found_position] = item;
     ht->item_count++;
 }
 
